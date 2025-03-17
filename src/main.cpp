@@ -6,16 +6,13 @@
 #include <WiFi.h>
 #include <Wire.h>
 
-#define NFC_INTERFACE_I2C
-#define DEBUG
+#include <Macro.h>
 
-extern "C" int lwip_hook_ip6_input(void *p) {
-    return 1; // Retourne 1 pour indiquer que le paquet IPv6 est accepté
-}
+#define NFC_INTERFACE_I2C
 
 /*
 ==========================================================================
-                        Partie config wifi
+                          Config wifi
 ==========================================================================
 */
 // Indentifiants pour se connecter au routeur
@@ -29,13 +26,16 @@ WiFiServer tcpServer(serverPort);
 // Client connecté au serveur
 WiFiClient client;
 
+extern "C" int lwip_hook_ip6_input(void *p) {
+  return 1; // Retourne 1 pour indiquer que le paquet IPv6 est accepté
+}
 
 /*
 ==========================================================================
-                          Config écran OLED
+                        Config écran OLED
 ==========================================================================
 */
-#include "logo.h"
+#include <Logo.h>
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 32
@@ -46,7 +46,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 /*
 ==========================================================================
-                              Config I2C
+                Config I2C
 ==========================================================================
 */
 // Définir les nouvelles broches pour I2C
@@ -55,7 +55,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 /*
 ==========================================================================
-                          Config lecteur NFC
+              Config lecteur NFC
 ==========================================================================
 */
 #define TNF_VALUE 0x01
@@ -67,94 +67,55 @@ NfcAdapter nfc = NfcAdapter(pn532_i2c);
 
 /*
 ==========================================================================
-                              Macro
-==========================================================================
-*/
-
-String formatTime(unsigned long milliseconds) {
-    unsigned long seconds = milliseconds / 1000;
-    unsigned long minutes = seconds / 60;
-    unsigned long hours = minutes / 60;
-
-    milliseconds %= 1000;
-    seconds %= 60;
-    minutes %= 60;
-    hours %= 24;
-
-    char buffer[20];
-    sprintf(buffer, "%02lu:%02lu:%02lu:%04lu", hours, minutes, seconds, milliseconds);
-    return String(buffer);
-}
-
-template <typename T>
-void printRec(const T& arg) {
-  Serial.print(arg);
-}
-
-template <typename First, typename... Rest>
-void printRec(const First& first, const Rest&... rest) {
-  Serial.print(first);
-  printRec(rest...);
-}
-
-template <typename... Args>
-void print(const Args&... args) {
-  Serial.print(formatTime(millis())); Serial.print(" ");
-  printRec(args...);
-}
-
-
-/*
-==========================================================================
-                            Script wifi
+              Script wifi
 ==========================================================================
 */
 // Setup la connection au wifi configuré dans la partie config du script.
 // La fonction Ne s'arrête pas tant qu'elle n'est pas connecté au wifi.
 void wifiConnection() {
   // Connexion au Wi-Fi
-  print("\n[WiFi] Connecting to network...\n");
+  info("\nConnecting to network...\n");
   WiFi.begin(ssid, password);
 
   // Attente de la connexion Wi-Fi
   while (WiFi.status() != WL_CONNECTED) {
     delay(500);
-    print(".");
+    info(".");
   }
 
-  print("\n[WiFi] Connected to WiFi! \n");
-  print("[WiFi] IP address: ", WiFi.localIP(), "\n");
+  info("Connected to WiFi! \n");
+  info("IP address: %s\n", WiFi.localIP().toString().c_str());
 }
 
 void serverSetup() {
   // Démarrage du serveur TCP
   tcpServer.begin();
   tcpServer.setNoDelay(true);  // Désactiver le buffering pour réduire la latence
-  print("[TCP] Server started on port ", serverPort, "\n");
+  info("Server started on port %d\n", serverPort);
 }
 
 void checkClientConnection() {
   if (!client || !client.connected()) {
-    client = tcpServer.available();  // Accepter un nouveau client
+    client = tcpServer.accept();  // Accepter un nouveau client
     if (client) {
-      print("[TCP] New client connected ! \n");
+      info("New client connected ! \n");
     }
   }
 }
 
 /*
 ==========================================================================
-                          Script écran OLED
+              Script écran OLED
 ==========================================================================
 */
 void screenSetup() {
-  print("[SSD1306] Setting up oled screen...\n");
+  info("Setting up oled screen...\n");
   if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
-    print("[SSD1306] Allocation failed\n");
+    error("Allocation failed\n");
     return;
   }
   
-  print("[SSD1306] Oled screen setted showing splash screen.\n");
+  info("Oled screen setted showing splash screen.\n");
   // Show initial display buffer contents on the screen --
   // the library initializes this with an Adafruit splash screen.
   display.display();
@@ -162,7 +123,7 @@ void screenSetup() {
   delay(1000);
   display.clearDisplay();
 
-  print("[SSD1306] Showing CampusFab logo\n");
+  info("Showing CampusFab logo\n");
   for (int i = 0; i < 200; i++) {
     display.clearDisplay();
 
@@ -173,7 +134,7 @@ void screenSetup() {
   }
   
 
-  print("[SSD1306] Oled screen setup finished ! \n");
+  info("Oled screen setup finished ! \n");
 }
 
 void drawLogoFun() {
@@ -184,13 +145,13 @@ void drawLogoFun() {
 
 /*
 ==========================================================================
-                          Script lecteur NFC
+              Script lecteur NFC
 ==========================================================================
 */
 // Initialize the NDEF Reader board and return the firmware version
 // If no module is found, the program is stopped
 void cardReaderSetup() {
-  print("[NFC] Cheking NDEF Reader Connection \n");
+  info("Cheking NDEF Reader Connection \n");
 
   nfc.begin();
 }
@@ -199,24 +160,20 @@ void cardReaderSetup() {
 bool nfcTagChecker(NfcTag* tag) {
 
   if (!nfc.tagPresent()) {
-    #ifdef DEBUG
-    print("[NFC] NfcTag not found\n");
-    #endif
+    debug("NfcTag not found\n");
     return false;
   }
 
   *tag = nfc.read();
 
-  print("[NFC] NfcTag Found : ", tag->getTagType(), " ", tag->getUidString(), "\n");
+  info("NfcTag Found : %s %s\n", tag->getTagType().c_str(), tag->getUidString().c_str());
   return true;
 }
 
 bool getRecordPayload(NdefRecord record, byte* payload) {
   
   if (record.getTnf() != TNF_VALUE) {
-    #ifdef DEBUG
-    print("[NFC] Wrong TNF Value");
-    #endif
+    warn("Wrong TNF Value");
     return false;
   }
 }
@@ -224,7 +181,7 @@ bool getRecordPayload(NdefRecord record, byte* payload) {
 bool getNDEFMessage(byte* ndefMessage, NfcTag tag) {
 
   if (!tag.hasNdefMessage()) {
-    print("[NFC] NfcTag don't have ndefmessage");
+    warn("NfcTag don't have ndefmessage");
     return false;
   }
 
@@ -233,7 +190,7 @@ bool getNDEFMessage(byte* ndefMessage, NfcTag tag) {
 }
 
 void checkNfcTag() {
-  print("[NFC] Checking NfcTag...\n");
+  info("Checking NfcTag...\n");
 
   NfcTag tag;
   if (!nfcTagChecker(&tag)) {
@@ -244,14 +201,14 @@ void checkNfcTag() {
 
 /*
 ==========================================================================
-                          Script principal
+              Script principal
 ==========================================================================
 */
 
 void setup() {
   Serial.begin(115200);
 
-  print("CONTROL LAB :((\n");
+  info("CONTROL LAB :((\n");
 
   // Configurer les broches I2C
   Wire.begin(SDA_PIN, SCL_PIN);
@@ -280,13 +237,13 @@ void loop() {
   if (client && client.connected() && client.available()) {
     String receivedMessage = client.readStringUntil('\n');  // Lire les données envoyées par le client
     receivedMessage.trim();  // Supprimer les espaces inutiles
-    Serial.print("[TCP] Received: ");
+    Serial.print("Received: ");
     Serial.println(receivedMessage);
 
     // Répondre au client
     String reply = "Message reçu : " + receivedMessage;
     client.println(reply);
-    Serial.print("[TCP] Replied: ");
+    Serial.print("Replied: ");
     Serial.println(reply);
   }
 
@@ -297,10 +254,10 @@ void loop() {
 
     if (client && client.connected()) {
       client.println("Serveur : " + message);
-      Serial.print("[TCP] Sent to client: ");
+      Serial.print("Sent to client: ");
       Serial.println(message);
     } else {
-      Serial.println("[TCP] No client connected.");
+      Serial.println("No client connected.");
     }
   }
   */
