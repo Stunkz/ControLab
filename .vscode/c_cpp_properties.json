@@ -562,6 +562,7 @@
             },
             "defines": [
                 "PLATFORMIO=60118",
+                "CORE_DEBUG_LEVEL=5",
                 "ESP_PLATFORM",
                 "IDF_VER=\"v5.1.4-674-gd38afc77db-dirty\"",
                 "MBEDTLS_CONFIG_FILE=\"mbedtls/esp_config.h\"",

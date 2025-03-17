@@ -1,3 +1,5 @@
+#define NFC_INTERFACE_I2C
+
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <NfcAdapter.h>
@@ -6,13 +8,11 @@
 #include <WiFi.h>
 #include <Wire.h>
 
-#include <Macro.h>
-
-#define NFC_INTERFACE_I2C
+#include <esp32-hal-log.h>
 
 /*
 ==========================================================================
-                          Config wifi
+              Config wifi
 ==========================================================================
 */
 // Indentifiants pour se connecter au routeur
@@ -32,7 +32,7 @@ extern "C" int lwip_hook_ip6_input(void *p) {
 
 /*
 ==========================================================================
-                        Config écran OLED
+            Config écran OLED
 ==========================================================================
 */
 #include <Logo.h>
@@ -46,7 +46,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 /*
 ==========================================================================
-                Config I2C
+        Config I2C
 ==========================================================================
 */
 // Définir les nouvelles broches pour I2C
@@ -55,7 +55,7 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 /*
 ==========================================================================
-              Config lecteur NFC
+        Config lecteur NFC
 ==========================================================================
 */
 #define TNF_VALUE 0x01
@@ -67,63 +67,61 @@ NfcAdapter nfc = NfcAdapter(pn532_i2c);
 
 /*
 ==========================================================================
-              Script wifi
+        Script wifi
 ==========================================================================
 */
 // Setup la connection au wifi configuré dans la partie config du script.
 // La fonction Ne s'arrête pas tant qu'elle n'est pas connecté au wifi.
 void wifiConnection() {
   // Connexion au Wi-Fi
-  info("\nConnecting to network...\n");
+  log_i("Connecting to network...");
   WiFi.begin(ssid, password);
 
   // Attente de la connexion Wi-Fi
   while (WiFi.status() != WL_CONNECTED) {
-    delay(500);
-    info(".");
+  delay(500);
+  log_i(".");
   }
 
-  info("Connected to WiFi! \n");
-  info("IP address: %s\n", WiFi.localIP().toString().c_str());
+  log_v("Connected to WiFi!");
+  log_v("IP address: %s", WiFi.localIP().toString().c_str());
 }
 
 void serverSetup() {
   // Démarrage du serveur TCP
   tcpServer.begin();
   tcpServer.setNoDelay(true);  // Désactiver le buffering pour réduire la latence
-  info("Server started on port %d\n", serverPort);
+  log_i("Server started on port %d", serverPort);
 }
 
 void checkClientConnection() {
   if (!client || !client.connected()) {
-    client = tcpServer.accept();  // Accepter un nouveau client
-    if (client) {
-      info("New client connected ! \n");
-    }
+  client = tcpServer.accept();  // Accepter un nouveau client
+  if (client) {
+    log_i("New client connected!");
+  }
   }
 }
 
 /*
 ==========================================================================
-              Script écran OLED
+        Script écran OLED
 ==========================================================================
 */
 void screenSetup() {
-  info("Setting up oled screen...\n");
+  log_i("Setting up OLED screen...");
   if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
-    error("Allocation failed\n");
+    log_e("Allocation failed");
     return;
   }
   
-  info("Oled screen setted showing splash screen.\n");
-  // Show initial display buffer contents on the screen --
-  // the library initializes this with an Adafruit splash screen.
+  log_i("OLED screen set up, showing splash screen.");
   display.display();
   
   delay(1000);
   display.clearDisplay();
 
-  info("Showing CampusFab logo\n");
+  log_i("Showing CampusFab logo");
   for (int i = 0; i < 200; i++) {
     display.clearDisplay();
 
@@ -133,132 +131,102 @@ void screenSetup() {
     display.display();
   }
   
-
-  info("Oled screen setup finished ! \n");
+  log_i("OLED screen setup finished!");
 }
 
-void drawLogoFun() {
-
-  
-  
-}
+void drawLogoFun() {}
 
 /*
 ==========================================================================
-              Script lecteur NFC
+        Script lecteur NFC
 ==========================================================================
 */
 // Initialize the NDEF Reader board and return the firmware version
 // If no module is found, the program is stopped
 void cardReaderSetup() {
-  info("Cheking NDEF Reader Connection \n");
+  log_v("Checking NDEF Reader Connection");
 
   nfc.begin();
 }
 
-// Check 
-bool nfcTagChecker(NfcTag* tag) {
-
-  if (!nfc.tagPresent()) {
-    debug("NfcTag not found\n");
-    return false;
-  }
-
-  *tag = nfc.read();
-
-  info("NfcTag Found : %s %s\n", tag->getTagType().c_str(), tag->getUidString().c_str());
-  return true;
-}
-
-bool getRecordPayload(NdefRecord record, byte* payload) {
-  
-  if (record.getTnf() != TNF_VALUE) {
-    warn("Wrong TNF Value");
-    return false;
-  }
-}
-
-bool getNDEFMessage(byte* ndefMessage, NfcTag tag) {
-
-  if (!tag.hasNdefMessage()) {
-    warn("NfcTag don't have ndefmessage");
-    return false;
-  }
-
-  
-
-}
-
+// TODO: assert failed: heap_caps_free heap_caps_base.c:63 (heap != NULL && "free() target pointer is outside heap areas")
 void checkNfcTag() {
-  info("Checking NfcTag...\n");
+  log_v("Checking NfcTag...");
 
   NfcTag tag;
-  if (!nfcTagChecker(&tag)) {
+  if (!nfc.tagPresent()) {
+    log_i("No NfcTag found");
     return;
   }
 
+  tag = nfc.read();
+
+  // TODO: Regler l'affichage du tag qui fait crash le programme
+  //log_d("NfcTag Found: %s %s", tag.getTagType().c_str(), tag.getUidString().c_str());
+
+  if (!tag.hasNdefMessage()) {
+    log_w("No NDEF Message found on the tag");
+    return;
+  }
+
+  NdefMessage message = tag.getNdefMessage();
+  byte payload[MAX_BYTES_MESSAGE] = {0};
+  log_d("NDEF Message found with %d records", message.getRecordCount());
+
+  if (message.getRecordCount() != 1) {
+    log_w("Expected 1 NDEF record, found %d", message.getRecordCount());
+    return;
+  }
+
+  NdefRecord record = message.getRecord(0);
+
+  if (record.getPayloadLength() > MAX_BYTES_MESSAGE) {
+    log_w("Payload too long, expected less than %d bytes, found %d", MAX_BYTES_MESSAGE, record.getPayloadLength());
+    return;
+  }
+
+  record.getPayload(payload);
+  log_d("Payload: %s", payload);
+
+  
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0,0);
+  display.println("NFC Tag Found!");
+  display.println("UID: " + tag.getUidString());
+  display.println("Type: " + tag.getTagType());
+  display.display();
+  
 }
 
 /*
 ==========================================================================
-              Script principal
+        Script principal
 ==========================================================================
 */
 
 void setup() {
   Serial.begin(115200);
 
-  info("CONTROL LAB :((\n");
+  log_i("CONTROL LAB :((");
 
   // Configurer les broches I2C
   Wire.begin(SDA_PIN, SCL_PIN);
   Wire.setClock(100000);
 
   screenSetup();
-/*
+  /*
   wifiConnection();
   serverSetup();
-*/
+  */
 
   cardReaderSetup();
-
 }
 
 void loop() {
-
   checkClientConnection();
-
   checkNfcTag();
   
   delay(1000);
-
-/*
-  // Vérifier si le client a envoyé des données
-  if (client && client.connected() && client.available()) {
-    String receivedMessage = client.readStringUntil('\n');  // Lire les données envoyées par le client
-    receivedMessage.trim();  // Supprimer les espaces inutiles
-    Serial.print("Received: ");
-    Serial.println(receivedMessage);
-
-    // Répondre au client
-    String reply = "Message reçu : " + receivedMessage;
-    client.println(reply);
-    Serial.print("Replied: ");
-    Serial.println(reply);
-  }
-
-  // Permettre à l'utilisateur via le moniteur série d'envoyer un message au client
-  if (Serial.available()) {
-    String message = Serial.readStringUntil('\n');  // Lire les données entrées sur le moniteur série
-    message.trim();  // Supprimer les espaces inutiles
-
-    if (client && client.connected()) {
-      client.println("Serveur : " + message);
-      Serial.print("Sent to client: ");
-      Serial.println(message);
-    } else {
-      Serial.println("No client connected.");
-    }
-  }
-  */
 }
