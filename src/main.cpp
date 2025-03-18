@@ -70,33 +70,59 @@ NfcAdapter nfc = NfcAdapter(pn532_i2c);
         Script wifi
 ==========================================================================
 */
-// Setup la connection au wifi configuré dans la partie config du script.
-// La fonction Ne s'arrête pas tant qu'elle n'est pas connecté au wifi.
-void wifiConnection() {
-  // Connexion au Wi-Fi
+
+/**
+ * @brief Establishes a connection to a Wi-Fi network using the provided SSID and password.
+ * 
+ * This function attempts to connect to a Wi-Fi network and waits until the connection
+ * is successfully established.
+ * 
+ * @note Ensure that the variables `ssid` and `password` are defined and contain
+ *       the correct credentials for the Wi-Fi network before calling this function.
+ * 
+ * @warning This function blocks execution until the Wi-Fi connection is established.
+ */
+void setupWifiConnection() {
   log_i("Connecting to network...");
   WiFi.begin(ssid, password);
 
-  // Attente de la connexion Wi-Fi
   while (WiFi.status() != WL_CONNECTED) {
-  delay(500);
-  log_i(".");
+  delay(1000);
+  log_v("Waiting for connection...");
   }
 
   log_v("Connected to WiFi!");
-  log_v("IP address: %s", WiFi.localIP().toString().c_str());
+  log_i("IP address: %s", WiFi.localIP().toString().c_str());
 }
 
-void serverSetup() {
-  // Démarrage du serveur TCP
+/**
+ * @brief Initializes and starts the TCP server.
+ * 
+ * This function sets up the TCP server to begin listening for incoming 
+ * connections. It also enables the TCP_NODELAY option to reduce latency.
+ * 
+ * @note Ensure that the `tcpServer` object and `serverPort` variable are 
+ * properly initialized before calling this function.
+ */
+void setupTcpServer() {
+
   tcpServer.begin();
-  tcpServer.setNoDelay(true);  // Désactiver le buffering pour réduire la latence
+  tcpServer.setNoDelay(true);
+
   log_i("Server started on port %d", serverPort);
 }
 
+/**
+ * @brief Checks the connection status of the client and accepts a new client
+ *        connection if the current client is not connected.
+ * 
+ * This function verifies whether the current client is valid and connected.
+ * If the client is either invalid or disconnected, it attempts to accept a
+ * new client connection from the TCP server.
+ */
 void checkClientConnection() {
   if (!client || !client.connected()) {
-  client = tcpServer.accept();  // Accepter un nouveau client
+  client = tcpServer.accept();
   if (client) {
     log_i("New client connected!");
   }
@@ -108,84 +134,129 @@ void checkClientConnection() {
         Script écran OLED
 ==========================================================================
 */
-void screenSetup() {
+
+/**
+ * @brief Draws the CampusFab logo on the display at the specified coordinates.
+ * 
+ * @param x The x-coordinate where the logo will be drawn.
+ * @param y The y-coordinate where the logo will be drawn.
+ */
+void drawCampusFab(int x, int y) {
+  display.clearDisplay();
+  display.drawBitmap(x, y, logo_bmp, LOGO_WIDTH, LOGO_HEIGHT, 1);
+  display.display();
+}
+
+/**
+ * @brief Clears the display screen and optionally introduces a delay.
+ * 
+ * @param delayMs The delay in milliseconds after clearing the screen. 
+ *                Defaults to 0 if not specified.
+ */
+void clearScreen(int delayMs = 0) {
+  display.clearDisplay();
+  display.display();
+  delay(delayMs);
+}
+
+/**
+ * @brief Initializes and sets up the OLED screen.
+ * 
+ * This function initializes the OLED screen using the specified address and 
+ * displays a splash screen followed by the CampusFab logo.
+ * 
+ * @note The function uses the SSD1306 library for OLED screen control.
+ */
+void setupScreen() {
   log_i("Setting up OLED screen...");
   if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
     log_e("Allocation failed");
     return;
   }
   
-  log_i("OLED screen set up, showing splash screen.");
+  log_v("OLED screen set up, showing splash screen.");
   display.display();
   
   delay(1000);
-  display.clearDisplay();
+  clearScreen(500);
 
-  log_i("Showing CampusFab logo");
-  for (int i = 0; i < 200; i++) {
-    display.clearDisplay();
-
-    display.drawBitmap(i%148,0,logo_bmp, LOGO_WIDTH, LOGO_HEIGHT, 1);
-    display.drawBitmap((i%148)-148,0,logo_bmp, LOGO_WIDTH, LOGO_HEIGHT, 1);
-
-    display.display();
-  }
+  log_v("Showing CampusFab logo");
+  drawCampusFab(0, 0);
+  delay(2000);
+  clearScreen();
   
   log_i("OLED screen setup finished!");
 }
-
-void drawLogoFun() {}
 
 /*
 ==========================================================================
         Script lecteur NFC
 ==========================================================================
 */
-// Initialize the NDEF Reader board and return the firmware version
-// If no module is found, the program is stopped
+
+/**
+ * @brief Initializes the NFC card reader.
+ * 
+ */
 void cardReaderSetup() {
   log_v("Checking NDEF Reader Connection");
 
   nfc.begin();
 }
 
-// TODO: assert failed: heap_caps_free heap_caps_base.c:63 (heap != NULL && "free() target pointer is outside heap areas")
-void checkNfcTag() {
-  log_v("Checking NfcTag...");
-
-  NfcTag tag;
+bool getPayload(byte* payload) {
   if (!nfc.tagPresent()) {
     log_i("No NfcTag found");
-    return;
+    return false;
   }
-
-  tag = nfc.read();
-
-  // TODO: Regler l'affichage du tag qui fait crash le programme
-  //log_d("NfcTag Found: %s %s", tag.getTagType().c_str(), tag.getUidString().c_str());
+  NfcTag tag = nfc.read();
 
   if (!tag.hasNdefMessage()) {
     log_w("No NDEF Message found on the tag");
-    return;
+    return false;
   }
 
   NdefMessage message = tag.getNdefMessage();
-  byte payload[MAX_BYTES_MESSAGE] = {0};
-  log_d("NDEF Message found with %d records", message.getRecordCount());
 
   if (message.getRecordCount() != 1) {
     log_w("Expected 1 NDEF record, found %d", message.getRecordCount());
-    return;
+    return false;
   }
 
   NdefRecord record = message.getRecord(0);
 
   if (record.getPayloadLength() > MAX_BYTES_MESSAGE) {
     log_w("Payload too long, expected less than %d bytes, found %d", MAX_BYTES_MESSAGE, record.getPayloadLength());
-    return;
+    return false;
+  }
+
+  if (record.getTnf() != TNF_VALUE) {
+    log_w("Wrong TNF value, expected %d, found %d", TNF_VALUE, record.getTnf());
+    return false;
   }
 
   record.getPayload(payload);
+  return true;
+}
+
+//TODO Make a real function
+void wrongTag() {
+  display.clearDisplay();
+  display.setTextSize(1);
+  display.setTextColor(SSD1306_WHITE);
+  display.setCursor(0,0);
+  display.println("Wrong Tag!");
+  display.display();
+}
+
+void checkNfcTag() {
+  log_v("Checking NfcTag...");
+
+  byte payload[MAX_BYTES_MESSAGE];
+  if (!getPayload(payload)) {
+    wrongTag();
+    return;
+  }
   log_d("Payload: %s", payload);
 
   
@@ -194,8 +265,6 @@ void checkNfcTag() {
   display.setTextColor(SSD1306_WHITE);
   display.setCursor(0,0);
   display.println("NFC Tag Found!");
-  display.println("UID: " + tag.getUidString());
-  display.println("Type: " + tag.getTagType());
   display.display();
   
 }
@@ -215,11 +284,11 @@ void setup() {
   Wire.begin(SDA_PIN, SCL_PIN);
   Wire.setClock(100000);
 
-  screenSetup();
-  /*
-  wifiConnection();
-  serverSetup();
-  */
+  setupScreen();
+  
+  setupWifiConnection();
+  setupTcpServer();
+  
 
   cardReaderSetup();
 }
