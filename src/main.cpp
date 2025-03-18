@@ -1,3 +1,11 @@
+/*
+Fonctionnalités:
+Lorsqu'on scan un tag on récupere le payload. On vérifie ensuite avec la raspberry pi ou le serveur si c'est un identifiant valide.
+Coté serveur on recrée un identifiant et on le donne à l'esp32 pour le reécrire sur le tag.
+
+Il faut aussi un mode pour écrire simplement sur le tag avec soit un boutton soit un mode.
+*/
+
 #define NFC_INTERFACE_I2C
 
 #include <Adafruit_GFX.h>
