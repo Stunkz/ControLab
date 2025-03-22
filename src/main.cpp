@@ -8,17 +8,15 @@ Il faut aussi un mode pour écrire simplement sur le tag avec soit un boutton so
 
 #define NFC_INTERFACE_I2C
 
+#include <DisplayHandler.h>
+#include <NfcHandler.h>
+
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
-#include <NfcAdapter.h>
-#include <PN532.h>
-#include <PN532_I2C.h>
 #include <WiFi.h>
 #include <Wire.h>
 
 #include <esp32-hal-log.h>
-
-#include <DisplayHandler.h>
 
 /*
 ==========================================================================
@@ -46,15 +44,6 @@ extern "C" int lwip_hook_ip6_input(void *p) {
 // Définir les nouvelles broches pour I2C
 #define SDA_PIN 6
 #define SCL_PIN 7
-
-/*
-==========================================================================
-        Config lecteur NFC
-==========================================================================
-*/
-// Initialisation du PN532 via I2C
-PN532_I2C pn532_i2c(Wire);
-NfcAdapter nfc = NfcAdapter(pn532_i2c);
 
 /*
 ==========================================================================
@@ -103,51 +92,6 @@ bool connectToServer(const char *host, int port) {
 ==========================================================================
 */
 
-/**
- * @brief Initializes the NFC card reader.
- * 
- */
-void cardReaderSetup() {
-  log_v("Checking NDEF Reader Connection");
-
-  nfc.begin();
-}
-
-bool getPayload(byte* payload) {
-  if (!nfc.tagPresent()) {
-    log_i("No NfcTag found");
-    return false;
-  }
-  NfcTag tag = nfc.read();
-
-  if (!tag.hasNdefMessage()) {
-    log_w("No NDEF Message found on the tag");
-    return false;
-  }
-
-  NdefMessage message = tag.getNdefMessage();
-
-  if (message.getRecordCount() != 1) {
-    log_w("Expected 1 NDEF record, found %d", message.getRecordCount());
-    return false;
-  }
-
-  NdefRecord record = message.getRecord(0);
-
-  if (record.getPayloadLength() > MAX_BYTES_MESSAGE) {
-    log_w("Payload too long, expected less than %d bytes, found %d", MAX_BYTES_MESSAGE, record.getPayloadLength());
-    return false;
-  }
-
-  if (record.getTnf() != TNF_VALUE) {
-    log_w("Wrong TNF value, expected %d, found %d", TNF_VALUE, record.getTnf());
-    return false;
-  }
-
-  record.getPayload(payload);
-  return true;
-}
-
 //TODO Make a real function
 void wrongTag() {
   display.text("Wrong Tag", "", "", 0);
@@ -156,16 +100,12 @@ void wrongTag() {
 
 void checkNfcTag() {
   log_v("Checking NfcTag...");
+  display.text("Checking Tag...", "", "", 0);
 
-  byte payload[MAX_BYTES_MESSAGE];
-  if (!getPayload(payload)) {
+  if (!nfcAntenna.getPayload()) {
     wrongTag();
     return;
   }
-  log_d("Payload: %s", payload);
-
-  
-  display.text("Checking Tag...", "", "", 0);
   
 }
 
@@ -197,8 +137,10 @@ void setup() {
   }
   */
   
-
-  cardReaderSetup();
+  display.text("Waiting for", "NFC Antenna...", "", 0);
+  while (!nfcAntenna.begin()) {
+    delay(1000);
+  }
 }
 
 void loop() {

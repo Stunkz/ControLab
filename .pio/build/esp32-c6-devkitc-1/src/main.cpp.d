@@ -1,5 +1,5 @@
 .pio/build/esp32-c6-devkitc-1/src/main.cpp.o: src/main.cpp \
- lib/Adafruit_GFX_Library/Adafruit_GFX.h \
+ src/DisplayHandler/DisplayHandler.h \
  C:/Users/ludov/.platformio/packages/framework-arduinoespressif32@src-443449006cf8411fd81ea5b30a82ae9f/cores/esp32/Arduino.h \
  C:/Users/ludov/.platformio/packages/framework-arduinoespressif32@src-443449006cf8411fd81ea5b30a82ae9f/cores/esp32/esp_arduino_version.h \
  C:/Users/ludov/.platformio/packages/framework-arduinoespressif32-libs/esp32c6/include/freertos/FreeRTOS-Kernel/include/freertos/FreeRTOS.h \
@@ -126,6 +126,7 @@
  C:/Users/ludov/.platformio/packages/framework-arduinoespressif32-libs/esp32c6/include/esp_hw_support/include/hal/cpu_ll.h \
  C:/Users/ludov/.platformio/packages/framework-arduinoespressif32@src-443449006cf8411fd81ea5b30a82ae9f/cores/esp32/io_pin_remap.h \
  C:/Users/ludov/.platformio/packages/framework-arduinoespressif32@src-443449006cf8411fd81ea5b30a82ae9f/cores/esp32/Arduino.h \
+ lib/Adafruit_GFX_Library/Adafruit_GFX.h \
  C:/Users/ludov/.platformio/packages/framework-arduinoespressif32@src-443449006cf8411fd81ea5b30a82ae9f/cores/esp32/Print.h \
  lib/Adafruit_GFX_Library/gfxfont.h \
  lib/Adafruit_BusIO/Adafruit_I2CDevice.h \
@@ -136,11 +137,12 @@
  lib/Adafruit_BusIO/Adafruit_SPIDevice.h \
  C:/Users/ludov/.platformio/packages/framework-arduinoespressif32@src-443449006cf8411fd81ea5b30a82ae9f/libraries/SPI/src/SPI.h \
  C:/Users/ludov/.platformio/packages/framework-arduinoespressif32@src-443449006cf8411fd81ea5b30a82ae9f/cores/esp32/esp32-hal-spi.h \
- lib/Adafruit_SSD1306/Adafruit_SSD1306.h lib/NDEF/NfcAdapter.h \
- lib/PN532/PN532Interface.h lib/PN532/PN532.h lib/PN532/PN532Interface.h \
- lib/NDEF/NfcTag.h lib/NDEF/NdefMessage.h lib/NDEF/Ndef.h \
- lib/NDEF/NdefRecord.h lib/NDEF/Due.h lib/NDEF/MifareClassic.h \
- lib/NDEF/MifareUltralight.h lib/PN532_I2C/PN532_I2C.h \
+ lib/Adafruit_SSD1306/Adafruit_SSD1306.h src/DisplayHandler/Logo.h \
+ src/NfcHandler/NfcHandler.h lib/PN532_I2C/PN532_I2C.h \
+ lib/PN532/PN532Interface.h lib/NDEF/NfcAdapter.h lib/PN532/PN532.h \
+ lib/PN532/PN532Interface.h lib/NDEF/NfcTag.h lib/NDEF/NdefMessage.h \
+ lib/NDEF/Ndef.h lib/NDEF/NdefRecord.h lib/NDEF/Due.h \
+ lib/NDEF/MifareClassic.h lib/NDEF/MifareUltralight.h \
  C:/Users/ludov/.platformio/packages/framework-arduinoespressif32@src-443449006cf8411fd81ea5b30a82ae9f/libraries/WiFi/src/WiFi.h \
  C:/Users/ludov/.platformio/packages/framework-arduinoespressif32@src-443449006cf8411fd81ea5b30a82ae9f/libraries/WiFi/src/WiFiType.h \
  C:/Users/ludov/.platformio/packages/framework-arduinoespressif32-libs/esp32c6/include/esp_wifi/include/esp_wifi_types.h \
@@ -187,5 +189,4 @@
  C:/Users/ludov/.platformio/packages/framework-arduinoespressif32@src-443449006cf8411fd81ea5b30a82ae9f/libraries/WiFi/src/WiFiClient.h \
  C:/Users/ludov/.platformio/packages/framework-arduinoespressif32@src-443449006cf8411fd81ea5b30a82ae9f/libraries/WiFi/src/WiFiServer.h \
  C:/Users/ludov/.platformio/packages/framework-arduinoespressif32@src-443449006cf8411fd81ea5b30a82ae9f/libraries/WiFi/src/WiFiUdp.h \
- C:/Users/ludov/.platformio/packages/framework-arduinoespressif32@src-443449006cf8411fd81ea5b30a82ae9f/libraries/Network/src/NetworkUdp.h \
- src/DisplayHandler/DisplayHandler.h src/DisplayHandler/Logo.h
+ C:/Users/ludov/.platformio/packages/framework-arduinoespressif32@src-443449006cf8411fd81ea5b30a82ae9f/libraries/Network/src/NetworkUdp.h
