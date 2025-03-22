@@ -10,7 +10,7 @@ NfcAdapter::~NfcAdapter(void)
     delete shield;
 }
 
-void NfcAdapter::begin(boolean verbose)
+bool NfcAdapter::begin(boolean verbose)
 {
     shield->begin();
 
@@ -18,22 +18,16 @@ void NfcAdapter::begin(boolean verbose)
 
     if (! versiondata)
     {
-#ifdef NDEF_USE_SERIAL
-        Serial.print(F("Didn't find PN53x board"));
-#endif
-        while (1); // halt
+        log_e("Didn't find PN53x board");
+        return false;
     }
 
-    if (verbose)
-    {
-#ifdef NDEF_USE_SERIAL
-        Serial.print(F("Found chip PN5")); Serial.println((versiondata>>24) & 0xFF, HEX);
-        Serial.print(F("Firmware ver. ")); Serial.print((versiondata>>16) & 0xFF, DEC);
-        Serial.print('.'); Serial.println((versiondata>>8) & 0xFF, DEC);
-#endif
-    }
+    // Got ok data, print it out!
+    log_v("Found chip PN5%x", (versiondata>>24) & 0xFF);
+    log_v("Firmware ver. %d.%d", (versiondata>>16) & 0xFF, (versiondata>>8) & 0xFF);
     // configure board to read RFID tags
     shield->SAMConfig();
+    return true;
 }
 
 boolean NfcAdapter::tagPresent(unsigned long timeout)
