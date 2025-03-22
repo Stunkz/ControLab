@@ -18,6 +18,8 @@ Il faut aussi un mode pour écrire simplement sur le tag avec soit un boutton so
 
 #include <esp32-hal-log.h>
 
+#include <DisplayHandler.h>
+
 /*
 ==========================================================================
               Config wifi
@@ -27,30 +29,14 @@ Il faut aussi un mode pour écrire simplement sur le tag avec soit un boutton so
 const char *ssid = "controlLab";
 const char *password = "jeromeray69@hotmail.fr";
 
-const int serverPort = 69;
+const int port = 9966;
+const char *host = "192.168.1.100";
 
-// Serveur TCP sur le port 69
-WiFiServer tcpServer(serverPort);
-// Client connecté au serveur
-WiFiClient client;
+WiFiClient espClient;
 
 extern "C" int lwip_hook_ip6_input(void *p) {
   return 1; // Retourne 1 pour indiquer que le paquet IPv6 est accepté
 }
-
-/*
-==========================================================================
-            Config écran OLED
-==========================================================================
-*/
-#include <Logo.h>
-
-#define SCREEN_WIDTH 128
-#define SCREEN_HEIGHT 32
-
-#define OLED_RESET     -1 // Reset pin # (or -1 if sharing Arduino reset pin)
-#define SCREEN_ADDRESS 0x3C ///< See datasheet for Address; 0x3D for 128x64, 0x3C for 128x32
-Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
 
 /*
 ==========================================================================
@@ -66,9 +52,6 @@ Adafruit_SSD1306 display(SCREEN_WIDTH, SCREEN_HEIGHT, &Wire, OLED_RESET);
         Config lecteur NFC
 ==========================================================================
 */
-#define TNF_VALUE 0x01
-#define MAX_BYTES_MESSAGE 16
-
 // Initialisation du PN532 via I2C
 PN532_I2C pn532_i2c(Wire);
 NfcAdapter nfc = NfcAdapter(pn532_i2c);
@@ -103,97 +86,15 @@ void setupWifiConnection() {
   log_i("IP address: %s", WiFi.localIP().toString().c_str());
 }
 
-/**
- * @brief Initializes and starts the TCP server.
- * 
- * This function sets up the TCP server to begin listening for incoming 
- * connections. It also enables the TCP_NODELAY option to reduce latency.
- * 
- * @note Ensure that the `tcpServer` object and `serverPort` variable are 
- * properly initialized before calling this function.
- */
-void setupTcpServer() {
-
-  tcpServer.begin();
-  tcpServer.setNoDelay(true);
-
-  log_i("Server started on port %d", serverPort);
-}
-
-/**
- * @brief Checks the connection status of the client and accepts a new client
- *        connection if the current client is not connected.
- * 
- * This function verifies whether the current client is valid and connected.
- * If the client is either invalid or disconnected, it attempts to accept a
- * new client connection from the TCP server.
- */
-void checkClientConnection() {
-  if (!client || !client.connected()) {
-  client = tcpServer.accept();
-  if (client) {
-    log_i("New client connected!");
+bool connectToServer(const char *host, int port) {
+  log_i("Connecting to server %s:%d", host, port);
+  if (!espClient.connect(host, port)) {
+    log_e("Connection failed!");
+    return false;
   }
-  }
-}
 
-/*
-==========================================================================
-        Script écran OLED
-==========================================================================
-*/
-
-/**
- * @brief Draws the CampusFab logo on the display at the specified coordinates.
- * 
- * @param x The x-coordinate where the logo will be drawn.
- * @param y The y-coordinate where the logo will be drawn.
- */
-void drawCampusFab(int x, int y) {
-  display.clearDisplay();
-  display.drawBitmap(x, y, logo_bmp, LOGO_WIDTH, LOGO_HEIGHT, 1);
-  display.display();
-}
-
-/**
- * @brief Clears the display screen and optionally introduces a delay.
- * 
- * @param delayMs The delay in milliseconds after clearing the screen. 
- *                Defaults to 0 if not specified.
- */
-void clearScreen(int delayMs = 0) {
-  display.clearDisplay();
-  display.display();
-  delay(delayMs);
-}
-
-/**
- * @brief Initializes and sets up the OLED screen.
- * 
- * This function initializes the OLED screen using the specified address and 
- * displays a splash screen followed by the CampusFab logo.
- * 
- * @note The function uses the SSD1306 library for OLED screen control.
- */
-void setupScreen() {
-  log_i("Setting up OLED screen...");
-  if(!display.begin(SSD1306_SWITCHCAPVCC, SCREEN_ADDRESS)) {
-    log_e("Allocation failed");
-    return;
-  }
-  
-  log_v("OLED screen set up, showing splash screen.");
-  display.display();
-  
-  delay(1000);
-  clearScreen(500);
-
-  log_v("Showing CampusFab logo");
-  drawCampusFab(0, 0);
-  delay(2000);
-  clearScreen();
-  
-  log_i("OLED screen setup finished!");
+  log_v("Connected to server!");
+  return true;
 }
 
 /*
@@ -249,12 +150,8 @@ bool getPayload(byte* payload) {
 
 //TODO Make a real function
 void wrongTag() {
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.setTextColor(SSD1306_WHITE);
-  display.setCursor(0,0);
-  display.println("Wrong Tag!");
-  display.display();
+  display.text("Wrong Tag", "", "", 0);
+  log_w("Wrong Tag");
 }
 
 void checkNfcTag() {
@@ -268,12 +165,7 @@ void checkNfcTag() {
   log_d("Payload: %s", payload);
 
   
-  display.clearDisplay();
-  display.setTextSize(1);
-  display.setTextColor(SSD1306_WHITE);
-  display.setCursor(0,0);
-  display.println("NFC Tag Found!");
-  display.display();
+  display.text("Checking Tag...", "", "", 0);
   
 }
 
@@ -292,17 +184,24 @@ void setup() {
   Wire.begin(SDA_PIN, SCL_PIN);
   Wire.setClock(100000);
 
-  setupScreen();
-  
+  display.begin();
+  display.drawCampusFab(0, 0, 2000);
+  display.clear();
+
+  /*
+  display.text("Waiting for", "Connection...", "", 0);
   setupWifiConnection();
-  setupTcpServer();
+
+  while (!connectToServer(host, port)) {
+    delay(1000);
+  }
+  */
   
 
   cardReaderSetup();
 }
 
 void loop() {
-  checkClientConnection();
   checkNfcTag();
   
   delay(1000);
