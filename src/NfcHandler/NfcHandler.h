@@ -7,8 +7,11 @@
 #include <NfcAdapter.h>
 #include <esp32-hal-log.h>
 
-#define TNF_VALUE 0x01
 #define MAX_BYTES_MESSAGE 16
+#define TNF_VALUE 0x01 // Define the expected TNF (Type Name Format) value for validation
+
+// Define the expected TNF (Type Name Format) value for validation
+constexpr uint8_t EXPECTED_TNF_VALUE = 0x01; // Example: 0x01 for NFC Well Known Type
 
 class NfcHandler {
     private:
@@ -16,7 +19,7 @@ class NfcHandler {
         NfcAdapter nfcAdapter;
         byte lastPayload[MAX_BYTES_MESSAGE];
 
-        bool isNfcTagValid(NfcTag tag);
+        bool isNfcTagValid(NfcTag& tag);
         bool isNdefMessageValid(NdefMessage message);
         bool isRecordValid(NdefRecord record);
     
@@ -24,6 +27,7 @@ class NfcHandler {
         NfcHandler(TwoWire* wire);
 
         bool begin();
+        NdefMessage getNdefMessage();
         bool getPayload(byte* payload = nullptr);
         void getLastPayload(byte* payload);
 };

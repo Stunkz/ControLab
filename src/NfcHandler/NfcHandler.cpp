@@ -5,7 +5,7 @@ NfcHandler nfcAntenna(&Wire);
 NfcHandler::NfcHandler(TwoWire* wire) 
     : pn532_i2c(*wire), nfcAdapter(pn532_i2c) {}
 
-bool NfcHandler::isNfcTagValid(NfcTag tag) {
+bool NfcHandler::isNfcTagValid(NfcTag& tag) {
     if (!tag.hasNdefMessage()) {
         log_w("No NDEF Message found on the tag");
         return false;
@@ -47,16 +47,19 @@ bool NfcHandler::getPayload(byte* payload) {
       return false;
     }
     NfcTag tag = nfcAdapter.read();
+  
     if (!isNfcTagValid(tag)) {
       return false;
     }
   
     NdefMessage message = tag.getNdefMessage();
+  
     if (!isNdefMessageValid(message)) {
       return false;
     }
   
     NdefRecord record = message.getRecord(0);
+  
     if (!isRecordValid(record)) {
       return false;
     }
