@@ -25,7 +25,7 @@ class NfcAdapter {
         NfcAdapter(PN532Interface &interface);
 
         ~NfcAdapter(void);
-        void begin(boolean verbose=true);
+        bool begin();
         boolean tagPresent(unsigned long timeout=0); // tagAvailable
         NfcTag read();
         boolean write(NdefMessage& ndefMessage);

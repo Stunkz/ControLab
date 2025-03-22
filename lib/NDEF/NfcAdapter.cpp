@@ -10,7 +10,7 @@ NfcAdapter::~NfcAdapter(void)
     delete shield;
 }
 
-bool NfcAdapter::begin(boolean verbose)
+bool NfcAdapter::begin()
 {
     shield->begin();
 
