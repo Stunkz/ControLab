@@ -50,12 +50,17 @@ NfcTag& NfcTag::operator=(const NfcTag& rhs)
 {
     if (this != &rhs)
     {
-        delete _ndefMessage;
+        if (_ndefMessage != NULL) {
+            delete _ndefMessage;
+        }
         _uid = rhs._uid;
         _uidLength = rhs._uidLength;
         _tagType = rhs._tagType;
-        // TODO do I need a copy here?
-        _ndefMessage = rhs._ndefMessage;
+        if (rhs._ndefMessage != NULL) {
+            _ndefMessage = new NdefMessage(*rhs._ndefMessage);
+        } else {
+            _ndefMessage = NULL;
+        }
     }
     return *this;
 }

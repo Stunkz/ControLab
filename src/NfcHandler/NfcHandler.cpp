@@ -46,7 +46,8 @@ bool NfcHandler::getPayload(byte* payload) {
       log_i("No NfcTag found");
       return false;
     }
-    NfcTag tag = nfcAdapter.read();
+    NfcTag tag;
+    tag = nfcAdapter.read();
   
     if (!isNfcTagValid(tag)) {
       return false;
