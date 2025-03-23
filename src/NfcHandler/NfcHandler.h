@@ -22,6 +22,7 @@ class NfcHandler {
         bool isNfcTagValid(NfcTag& tag);
         bool isNdefMessageValid(NdefMessage message);
         bool isRecordValid(NdefRecord record);
+        void getNfcTag(NfcTag& tag);
     
     public:
         NfcHandler(TwoWire* wire);

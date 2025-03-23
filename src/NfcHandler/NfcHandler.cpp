@@ -6,6 +6,10 @@ NfcHandler::NfcHandler(TwoWire* wire)
     : pn532_i2c(*wire), nfcAdapter(pn532_i2c) {}
 
 bool NfcHandler::isNfcTagValid(NfcTag& tag) {
+    if (tag.getUidString() == "") {
+        log_w("No tag found");
+        return false;
+    }
     if (!tag.hasNdefMessage()) {
         log_w("No NDEF Message found on the tag");
         return false;
@@ -41,13 +45,16 @@ bool NfcHandler::begin() {
     return true;
 }
 
-bool NfcHandler::getPayload(byte* payload) {
+void NfcHandler::getNfcTag(NfcTag& tag) {
     if (!nfcAdapter.tagPresent()) {
-      log_i("No NfcTag found");
-      return false;
+        return;
     }
-    NfcTag tag;
     tag = nfcAdapter.read();
+}
+
+bool NfcHandler::getPayload(byte* payload) {
+    NfcTag tag;
+    getNfcTag(tag);
   
     if (!isNfcTagValid(tag)) {
       return false;
