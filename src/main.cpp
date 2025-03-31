@@ -101,11 +101,18 @@ void wrongTag() {
 void checkNfcTag() {
   log_v("Checking NfcTag...");
   display.text("Checking Tag...", "", "", 0);
-
-  if (!nfcAntenna.getPayload()) {
+  /*
+  if (!nfcAntenna.readNfcTag()) {
     wrongTag();
     return;
   }
+
+  log_v("Tag found!");
+  display.text("Tag found!", "", "", 0);
+  log_d("Payload: %s", nfcAntenna.getLastPayloadString().c_str());
+  */
+
+  nfcAntenna.test();
   
 }
 
