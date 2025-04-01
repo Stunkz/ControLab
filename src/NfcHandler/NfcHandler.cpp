@@ -102,6 +102,42 @@ bool NfcHandler::readNfcTag(byte* payload) {
     return true;
 }
 
+bool NfcHandler::setRecord(NdefRecord& record, byte* payload) {
+    if (payload == nullptr) {
+        log_w("Payload is null");
+        return false;
+    }
+    record.setTnf(EXPECTED_TNF_VALUE);
+    record.setPayload(payload, MAX_BYTES_MESSAGE);
+    
+    return true;
+}
+
+bool NfcHandler::formatNfcMessage(NdefMessage& message, NdefRecord& record) {
+    if (!isRecordValid(record)) {
+        return false;
+    }
+
+    message.addRecord(record);
+    return true;
+}
+
+bool NfcHandler::writeNfcTag(byte* payload) {
+    NfcTag tag;
+    NdefMessage message = NdefMessage();
+    NdefRecord record = NdefRecord();
+
+    if (!setRecord(record, payload)) {
+        return false;
+    }
+
+    if (!formatNfcMessage(message, record)) {
+        return false;
+    }
+
+    
+}
+
 void NfcHandler::getLastPayload(byte* payload) {
     memcpy(payload, nfcAntenna.lastPayload, MAX_BYTES_MESSAGE);
 }

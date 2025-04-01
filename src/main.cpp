@@ -15,6 +15,7 @@ Il faut aussi un mode pour écrire simplement sur le tag avec soit un boutton so
 #include <Adafruit_SSD1306.h>
 #include <WiFi.h>
 #include <Wire.h>
+#include <HTTPClient.h>
 
 #include <esp32-hal-log.h>
 
@@ -28,13 +29,15 @@ const char *ssid = "controlLab";
 const char *password = "jeromeray69@hotmail.fr";
 
 const int port = 9966;
-const char *host = "192.168.1.100";
+const char *host = "192.168.1.100:8000";
 
 WiFiClient espClient;
 
 extern "C" int lwip_hook_ip6_input(void *p) {
   return 1; // Retourne 1 pour indiquer que le paquet IPv6 est accepté
 }
+
+HTTPClient http;
 
 /*
 ==========================================================================
@@ -67,23 +70,58 @@ void setupWifiConnection() {
   WiFi.begin(ssid, password);
 
   while (WiFi.status() != WL_CONNECTED) {
-  delay(1000);
-  log_v("Waiting for connection...");
+    delay(1000);
+    log_v("Waiting for connection...");
   }
 
   log_v("Connected to WiFi!");
   log_i("IP address: %s", WiFi.localIP().toString().c_str());
 }
 
-bool connectToServer(const char *host, int port) {
-  log_i("Connecting to server %s:%d", host, port);
-  if (!espClient.connect(host, port)) {
-    log_e("Connection failed!");
+void setupServerHTTP(const char* server) {
+  log_i("Connecting to server...");
+  while (!http.begin(espClient, server)) {
+    delay(1000);
+    log_v("Waiting for server connection...");
+  }
+  log_v("Connected to server!");
+  http.addHeader("Content-Type", "text/plain");
+}
+
+uint8_t checkServerConnection() {
+  if (WiFi.status() != WL_CONNECTED) {
+    log_e("WiFi disconnected, reconnecting...");
+    return 1;
+  }
+
+  if (!http.connected()) {
+    log_e("HTTP client disconnected, reconnecting...");
+    return 2;
+  }
+  return 0;
+}
+
+bool sendCardID(const char* cardID) {
+  if (checkServerConnection() > 0) {
+    log_e("Error: Unable to connect to server or WiFi.");
     return false;
   }
 
-  log_v("Connected to server!");
-  return true;
+  log_v("Sending card ID to server...");
+  String payload = "001";
+  for (int i = 0; i < MAX_BYTES_MESSAGE; i++) {
+    payload += String(cardID[i]);
+  }
+  log_d("Payload: %s", payload.c_str());
+
+  int httpResponseCode = http.POST(payload);
+  if (httpResponseCode > 0) {
+    String response = http.getString();
+    log_d("Response: %s", response.c_str());
+  } else {
+    log_e("Error on sending POST: %s", http.errorToString(httpResponseCode).c_str());
+    return false;
+  }
 }
 
 /*
@@ -109,9 +147,18 @@ void checkNfcTag() {
 
   log_v("Tag found!");
   display.text("Tag found!", "", "", 0);
-  log_d("Payload: %s", nfcAntenna.getLastPayloadString().c_str());
+  byte payload[MAX_BYTES_MESSAGE];
+
+  nfcAntenna.getLastPayload(payload);
+  char cardID[MAX_BYTES_MESSAGE] = {0};
+
+  for (int i = 0; i < MAX_BYTES_MESSAGE; i++) {
+    cardID[i] = payload[i];
+  }
+
+  log_d("Card ID: %s", nfcAntenna.getLastPayloadString().c_str());
   
-  
+  sendCardID(cardID);
 }
 
 /*
@@ -137,11 +184,8 @@ void setup() {
   display.text("Waiting for", "Connection...", "", 0);
   setupWifiConnection();
 
-  while (!connectToServer(host, port)) {
-    delay(1000);
-  }
+  setupServerHTTP(host);
   */
-  
   display.text("Waiting for", "NFC Antenna...", "", 0);
   while (!nfcAntenna.begin()) {
     delay(1000);

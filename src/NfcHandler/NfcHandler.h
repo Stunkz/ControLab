@@ -25,6 +25,8 @@ class NfcHandler {
         bool getNfcTag(NfcTag& tag);
         bool getNdefMessage(NfcTag& tag, NdefMessage& message);
         bool getPayload(NdefMessage& message, byte* payload);
+        bool setRecord(NdefRecord& record, byte* payload);
+        bool formatNfcMessage(NdefMessage& message, NdefRecord& record);
     
     public:
         NfcHandler(TwoWire* wire);
@@ -32,6 +34,7 @@ class NfcHandler {
         bool begin();
         NdefMessage getNdefMessage();
         bool readNfcTag(byte* payload = nullptr);
+        bool writeNfcTag(byte* payload);
         void getLastPayload(byte* payload);
         String getLastPayloadString();
 };
