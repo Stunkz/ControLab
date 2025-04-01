@@ -10,6 +10,10 @@
 #define ERROR_NO_NDEF_MESSAGE           (103)
 #define ERROR_TOO_MANY_RECORDS          (104)
 #define ERROR_NOT_ENOUGH_RECORDS        (105)
+#define ERROR_INVALID_PAYLOAD           (106) // When the payload of the record is invalid
+#define ERROR_INVALID_TNF               (107)
+#define ERROR_COULD_NOT_WRITE_TAG       (108)
 
+extern uint8_t errorCode; // Global variable to store the error code
 
 #endif // ERROR_CODE_H

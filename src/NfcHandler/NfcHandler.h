@@ -11,7 +11,7 @@
 #include <ErrorCode.h>
 
 /*
-Card are made of 10 bytes like "1234567890"
+CardID are made of 10 bytes like "1234567890"
 There is only 1 record in the NDEF message with a payload of 10 bytes
 The TNF is set to 0x01 (NFC Forum well-known type)
 */
@@ -29,8 +29,6 @@ class NfcHandler {
 
 
 
-        uint8_t formatNfcMessage(NdefMessage& message, NdefRecord& record);
-
         uint8_t getNfcTag(NfcTag& tag);
         uint8_t getNdefMessage(NfcTag& tag, NdefMessage& message);
         uint8_t getPayload(NdefMessage& message, byte* payload);
@@ -40,15 +38,16 @@ class NfcHandler {
         uint8_t isRecordValid(NdefRecord record);
 
         uint8_t setRecord(NdefRecord& record, byte* payload);
+        uint8_t setNDEF(NdefMessage& message, NdefRecord& record);
     
     public:
         NfcHandler(TwoWire* wire);
 
 
 
-        uint8_t     begin();
-        void        getLastPayload(byte* payload);
-        String      getLastPayloadString();
+        uint8_t     begin(void);
+        uint8_t     getLastPayload(byte* payload);
+        String     getLastPayloadString(void);
         uint8_t     readNfcTag(byte* payload = nullptr);
         uint8_t     writeNfcTag(byte* payload);
         
