@@ -135,7 +135,17 @@ bool NfcHandler::writeNfcTag(byte* payload) {
         return false;
     }
 
-    
+    if(!getNfcTag(tag)) {
+        return false;
+    }
+
+    if (!nfcAdapter.write(message)) {
+        log_e("Failed to write NDEF message to tag");
+        return false;
+    }
+
+    log_d("NDEF message written to tag successfully");
+    return true;
 }
 
 void NfcHandler::getLastPayload(byte* payload) {

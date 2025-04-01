@@ -28,7 +28,7 @@ Il faut aussi un mode pour écrire simplement sur le tag avec soit un boutton so
 const char *ssid = "controlLab";
 const char *password = "jeromeray69@hotmail.fr";
 
-const int port = 9966;
+const int port = 8080;
 const char *host = "192.168.1.100:8000";
 
 WiFiClient espClient;
@@ -122,6 +122,7 @@ bool sendCardID(const char* cardID) {
     log_e("Error on sending POST: %s", http.errorToString(httpResponseCode).c_str());
     return false;
   }
+  return true;
 }
 
 /*
@@ -180,12 +181,12 @@ void setup() {
   display.drawCampusFab(0, 0, 2000);
   display.clear();
 
-  /*
+  
   display.text("Waiting for", "Connection...", "", 0);
   setupWifiConnection();
 
   setupServerHTTP(host);
-  */
+  
   display.text("Waiting for", "NFC Antenna...", "", 0);
   while (!nfcAntenna.begin()) {
     delay(1000);
@@ -193,6 +194,7 @@ void setup() {
 }
 
 void loop() {
+  nfcAntenna.writeNfcTag((byte*)"");
   checkNfcTag();
   
   delay(1000);
