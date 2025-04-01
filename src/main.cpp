@@ -130,7 +130,7 @@ bool sendCardID(const char* cardID) {
 
   log_v("Sending card ID to server...");
   String payload = "101";
-  for (int i = 0; i < MAX_BYTES_MESSAGE; i++) {
+  for (int i = 0; i < PAYLOAD_SIZE; i++) {
     payload += String(cardID[i]);
   }
   log_d("Payload: %s", payload.c_str());
@@ -146,7 +146,7 @@ bool sendCardID(const char* cardID) {
     if (strcmp(request.c_str(), "001") == 0) {
       log_v("Valid ID");
       String newID = "";
-      for (int i = 0; i < MAX_BYTES_MESSAGE; i++) {
+      for (int i = 0; i < PAYLOAD_SIZE; i++) {
         newID += String(response[i+3]);
       }
       nfcAntenna.writeNfcTag((byte*)newID.c_str());
@@ -186,12 +186,12 @@ void checkNfcTag() {
 
   log_v("Tag found!");
   display.text("Tag found!", "", "", 0);
-  byte payload[MAX_BYTES_MESSAGE];
+  byte payload[PAYLOAD_SIZE];
 
   nfcAntenna.getLastPayload(payload);
-  char cardID[MAX_BYTES_MESSAGE] = {0};
+  char cardID[PAYLOAD_SIZE] = {0};
 
-  for (int i = 0; i < MAX_BYTES_MESSAGE; i++) {
+  for (int i = 0; i < PAYLOAD_SIZE; i++) {
     cardID[i] = payload[i];
   }
 

@@ -8,35 +8,50 @@
 #include <NfcAdapter.h>
 #include <esp32-hal-log.h>
 
-#define MAX_BYTES_MESSAGE 10
+#include <ErrorCode.h>
+
+/*
+Card are made of 10 bytes like "1234567890"
+There is only 1 record in the NDEF message with a payload of 10 bytes
+The TNF is set to 0x01 (NFC Forum well-known type)
+*/
+#define PAYLOAD_SIZE 10
+#define NUM_RECORDS 1
 
 // Define the expected TNF (Type Name Format) value for validation
-constexpr uint8_t EXPECTED_TNF_VALUE = 0x01; // Example: 0x00 for NFC Well Known Type
+#define EXPECTED_TNF_VALUE 0x01
 
 class NfcHandler {
     private:
-        PN532_I2C pn532_i2c;
-        NfcAdapter nfcAdapter;
-        byte lastPayload[MAX_BYTES_MESSAGE];
+        PN532_I2C   pn532_i2c;
+        NfcAdapter  nfcAdapter;
+        byte        lastPayload[PAYLOAD_SIZE];
 
-        bool isNfcTagValid(NfcTag& tag);
-        bool isNdefMessageValid(NdefMessage message);
-        bool isRecordValid(NdefRecord record);
-        bool getNfcTag(NfcTag& tag);
-        bool getNdefMessage(NfcTag& tag, NdefMessage& message);
-        bool getPayload(NdefMessage& message, byte* payload);
-        bool setRecord(NdefRecord& record, byte* payload);
-        bool formatNfcMessage(NdefMessage& message, NdefRecord& record);
+
+
+        uint8_t formatNfcMessage(NdefMessage& message, NdefRecord& record);
+
+        uint8_t getNfcTag(NfcTag& tag);
+        uint8_t getNdefMessage(NfcTag& tag, NdefMessage& message);
+        uint8_t getPayload(NdefMessage& message, byte* payload);
+
+        uint8_t isNfcTagValid(NfcTag& tag);
+        uint8_t isNdefMessageValid(NdefMessage message);
+        uint8_t isRecordValid(NdefRecord record);
+
+        uint8_t setRecord(NdefRecord& record, byte* payload);
     
     public:
         NfcHandler(TwoWire* wire);
 
-        bool begin();
-        NdefMessage getNdefMessage();
-        bool readNfcTag(byte* payload = nullptr);
-        bool writeNfcTag(byte* payload);
-        void getLastPayload(byte* payload);
-        String getLastPayloadString();
+
+
+        uint8_t     begin();
+        void        getLastPayload(byte* payload);
+        String      getLastPayloadString();
+        uint8_t     readNfcTag(byte* payload = nullptr);
+        uint8_t     writeNfcTag(byte* payload);
+        
 };
 
 extern NfcHandler nfcAntenna;

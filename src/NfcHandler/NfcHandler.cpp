@@ -1,59 +1,32 @@
 #include "NfcHandler.h"
 
-NfcHandler nfcAntenna(&Wire);
+/*
+===================================================================================================================
+                                                Private Methods
+====================================================================================================================
+*/
 
 NfcHandler::NfcHandler(TwoWire* wire) 
     : pn532_i2c(*wire), nfcAdapter(pn532_i2c) {}
 
-bool NfcHandler::isNfcTagValid(NfcTag& tag) {
-    if (tag.getUidString() == "") {
-        log_w("No tag found");
+uint8_t NfcHandler::formatNfcMessage(NdefMessage& message, NdefRecord& record) {
+    if (!isRecordValid(record)) {
         return false;
     }
-    if (!tag.hasNdefMessage()) {
-        log_w("No NDEF Message found on the tag");
-        return false;
-    }
+
+    message.addRecord(record);
     return true;
 }
 
-bool NfcHandler::isNdefMessageValid(NdefMessage message) {
-    if (message.getRecordCount() != 1) {
-        log_w("Expected 1 NDEF record, found %d", message.getRecordCount());
-        return false;
-    }
-    return true;
-}
-
-bool NfcHandler::isRecordValid(NdefRecord record) {
-    if (record.getPayloadLength() > MAX_BYTES_MESSAGE) {
-        log_w("Payload too long, expected less than %d bytes, found %d", MAX_BYTES_MESSAGE, record.getPayloadLength());
-        return false;
-    }
-    if (record.getTnf() != EXPECTED_TNF_VALUE) {
-        log_w("Wrong TNF value, expected %d, found %d", EXPECTED_TNF_VALUE, record.getTnf());
-        return false;
-    }
-    return true;
-}
-
-bool NfcHandler::begin() {
-    if (!nfcAdapter.begin()) {
-        log_e("Error initializing NFC adapter");
-        return false;
-    }
-    return true;
-}
-
-bool NfcHandler::getNfcTag(NfcTag& tag) {
+uint8_t NfcHandler::getNfcTag(NfcTag& tag) {
     if (!nfcAdapter.tagPresent()) {
-        return false;
+        return ERROR_NFC_TAG_NOT_PRESENT;
     }
     tag = nfcAdapter.read();
-    return true;
+    return CODE_SUCCESS;
 }
 
-bool NfcHandler::getNdefMessage(NfcTag& tag, NdefMessage& message) {
+uint8_t NfcHandler::getNdefMessage(NfcTag& tag, NdefMessage& message) {
     if (!isNfcTagValid(tag)) {
         return false;
     }
@@ -63,7 +36,7 @@ bool NfcHandler::getNdefMessage(NfcTag& tag, NdefMessage& message) {
     return true;
 }
 
-bool NfcHandler::getPayload(NdefMessage& message, byte* payload) {
+uint8_t NfcHandler::getPayload(NdefMessage& message, byte* payload) {
     if (!isNdefMessageValid(message)) {
       return false;
     }
@@ -79,7 +52,87 @@ bool NfcHandler::getPayload(NdefMessage& message, byte* payload) {
     return true;
 }
 
-bool NfcHandler::readNfcTag(byte* payload) {
+uint8_t NfcHandler::isNfcTagValid(NfcTag& tag) {
+    if (tag.getUidString() == "") {
+        return ERROR_INVALID_UID;
+    }
+    if (!tag.hasNdefMessage()) {
+        return ERROR_NO_NDEF_MESSAGE;
+    }
+    return CODE_SUCCESS;
+}
+
+uint8_t NfcHandler::isNdefMessageValid(NdefMessage message) {
+    int recordCount = message.getRecordCount();
+
+    if (recordCount < NUM_RECORDS) {
+        return ERROR_NOT_ENOUGH_RECORDS;
+    }
+    
+    if (recordCount > NUM_RECORDS) {
+        return ERROR_TOO_MANY_RECORDS;
+    }
+    return CODE_SUCCESS;
+}
+
+uint8_t NfcHandler::isRecordValid(NdefRecord record) {
+    if (record.getPayloadLength() > PAYLOAD_SIZE) {
+        log_w("Payload too long, expected less than %d bytes, found %d", PAYLOAD_SIZE, record.getPayloadLength());
+        return false;
+    }
+    if (record.getTnf() != EXPECTED_TNF_VALUE) {
+        log_w("Wrong TNF value, expected %d, found %d", EXPECTED_TNF_VALUE, record.getTnf());
+        return false;
+    }
+    return true;
+}
+
+uint8_t NfcHandler::setRecord(NdefRecord& record, byte* payload) {
+    if (payload == nullptr) {
+        log_w("Payload is null");
+        return false;
+    }
+    record.setTnf(EXPECTED_TNF_VALUE);
+    record.setPayload(payload, PAYLOAD_SIZE);
+    
+    return true;
+}
+
+/*
+===================================================================================================================
+                                                Public Methods
+====================================================================================================================
+*/
+
+
+/**
+ * This object represents the NFC antenna handler and is responsible for managing
+ * communication with the NFC hardware using the provided I2C interface.
+ * 
+ */
+NfcHandler nfcAntenna(&Wire);
+
+uint8_t NfcHandler::begin() {
+    if (!nfcAdapter.begin()) {
+        return ERROR_PN532_INIT_FAILED;
+    }
+    return CODE_SUCCESS;
+}
+
+void NfcHandler::getLastPayload(byte* payload) {
+    memcpy(payload, lastPayload, PAYLOAD_SIZE);
+}
+
+String NfcHandler::getLastPayloadString() {
+    String lastPayloadString = "";
+    for (int i = 0; i < PAYLOAD_SIZE; i++) {
+        lastPayloadString += String(lastPayload[i], HEX) + " ";
+    }
+    return lastPayloadString;
+}
+
+
+uint8_t NfcHandler::readNfcTag(byte* payload) {
     NfcTag tag;
     NdefMessage message;
 
@@ -96,33 +149,13 @@ bool NfcHandler::readNfcTag(byte* payload) {
     }
 
     if (payload) {
-        memcpy(payload, lastPayload, MAX_BYTES_MESSAGE);
+        memcpy(payload, lastPayload, PAYLOAD_SIZE);
     }
 
     return true;
 }
 
-bool NfcHandler::setRecord(NdefRecord& record, byte* payload) {
-    if (payload == nullptr) {
-        log_w("Payload is null");
-        return false;
-    }
-    record.setTnf(EXPECTED_TNF_VALUE);
-    record.setPayload(payload, MAX_BYTES_MESSAGE);
-    
-    return true;
-}
-
-bool NfcHandler::formatNfcMessage(NdefMessage& message, NdefRecord& record) {
-    if (!isRecordValid(record)) {
-        return false;
-    }
-
-    message.addRecord(record);
-    return true;
-}
-
-bool NfcHandler::writeNfcTag(byte* payload) {
+uint8_t NfcHandler::writeNfcTag(byte* payload) {
     NfcTag tag;
     NdefMessage message = NdefMessage();
     NdefRecord record = NdefRecord();
@@ -146,16 +179,4 @@ bool NfcHandler::writeNfcTag(byte* payload) {
 
     log_d("NDEF message written to tag successfully");
     return true;
-}
-
-void NfcHandler::getLastPayload(byte* payload) {
-    memcpy(payload, nfcAntenna.lastPayload, MAX_BYTES_MESSAGE);
-}
-
-String NfcHandler::getLastPayloadString() {
-    String lastPayloadString = "";
-    for (int i = 0; i < MAX_BYTES_MESSAGE; i++) {
-        lastPayloadString += String(lastPayload[i], HEX) + " ";
-    }
-    return lastPayloadString;
 }
