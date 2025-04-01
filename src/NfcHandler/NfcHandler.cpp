@@ -17,49 +17,6 @@ bool NfcHandler::isNfcTagValid(NfcTag& tag) {
     return true;
 }
 
-void NfcHandler::test() {
-    if (!nfcAdapter.tagPresent()) {
-        log_w("No tag present");
-        return;
-    }
-    nfcShield.begin();
-    uint32_t version = nfcShield.getFirmwareVersion();
-    if (!version) {
-        log_e("Didn't find PN53x board");
-        return;
-    }
-    nfcShield.SAMConfig();
-    log_d("Found chip PN532 v%.2X", version);
-
-    log_v("Waiting for an NFC tag...");
-    uint8_t uid[7];
-    uint8_t uidLength = 0;
-    if (nfcShield.readPassiveTargetID(PN532_MIFARE_ISO14443A, uid, &uidLength)) {
-        log_d("Found an NFC tag with UID: ");
-        String uidString = "";
-        for (uint8_t i = 0; i < uidLength; i++) {
-            uidString += String(uid[i], HEX) + " ";
-        }
-        log_d("UID: %s", uidString.c_str());
-        String dataString = "";
-        for (uint8_t page = 0; page < 128; page++) {
-            uint8_t data[4] = {0};
-            if (nfcShield.mifareultralight_ReadPage(page, data)) {
-                String pageString = "";
-                for (uint8_t i = 0; i < 4; i++) {
-                    dataString += String(data[i], HEX) + " ";
-                }
-            } else {
-                log_w("Failed to read page %d", page);
-            }
-        }
-        log_d("Data: %s", dataString.c_str());
-    } else {
-        log_w("Failed to read NFC tag UID");
-    }
-    
-}
-
 bool NfcHandler::isNdefMessageValid(NdefMessage message) {
     if (message.getRecordCount() != 1) {
         log_w("Expected 1 NDEF record, found %d", message.getRecordCount());
