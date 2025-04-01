@@ -3,7 +3,7 @@
 NfcHandler nfcAntenna(&Wire);
 
 NfcHandler::NfcHandler(TwoWire* wire) 
-    : pn532_i2c(*wire), nfcShield(pn532_i2c), nfcAdapter(pn532_i2c) {}
+    : pn532_i2c(*wire), nfcAdapter(pn532_i2c) {}
 
 bool NfcHandler::isNfcTagValid(NfcTag& tag) {
     if (tag.getUidString() == "") {

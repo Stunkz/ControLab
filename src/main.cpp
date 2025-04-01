@@ -111,6 +111,7 @@ void checkNfcTag() {
   display.text("Tag found!", "", "", 0);
   log_d("Payload: %s", nfcAntenna.getLastPayloadString().c_str());
   
+  
 }
 
 /*
