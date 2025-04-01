@@ -28,10 +28,7 @@ Il faut aussi un mode pour écrire simplement sur le tag avec soit un boutton so
 const char *ssid = "controlLab";
 const char *password = "jeromeray69@hotmail.fr";
 
-const int port = 8080;
-const char *host = "192.168.1.100:8000";
-
-WiFiClient espClient;
+const String host = "http://192.168.0.105:8000";
 
 extern "C" int lwip_hook_ip6_input(void *p) {
   return 1; // Retourne 1 pour indiquer que le paquet IPv6 est accepté
@@ -60,9 +57,6 @@ HTTPClient http;
  * This function attempts to connect to a Wi-Fi network and waits until the connection
  * is successfully established.
  * 
- * @note Ensure that the variables `ssid` and `password` are defined and contain
- *       the correct credentials for the Wi-Fi network before calling this function.
- * 
  * @warning This function blocks execution until the Wi-Fi connection is established.
  */
 void setupWifiConnection() {
@@ -78,37 +72,64 @@ void setupWifiConnection() {
   log_i("IP address: %s", WiFi.localIP().toString().c_str());
 }
 
-void setupServerHTTP(const char* server) {
-  log_i("Connecting to server...");
-  while (!http.begin(espClient, server)) {
-    delay(1000);
-    log_v("Waiting for server connection...");
+bool checkWifiConnection() {
+  if (WiFi.status() != WL_CONNECTED) {
+    return false;
   }
-  log_v("Connected to server!");
-  http.addHeader("Content-Type", "text/plain");
+  return true;
 }
 
-uint8_t checkServerConnection() {
-  if (WiFi.status() != WL_CONNECTED) {
-    log_e("WiFi disconnected, reconnecting...");
+bool checkServerConnection() {
+  int httpResponseCode = http.GET();
+  if (httpResponseCode == 200) {
+    return true;
+  } else {
+    return false;
+  }
+}
+
+uint8_t checkConnection() {
+  if (!checkWifiConnection) {
+    log_w("Wifi disconnected.");
     return 1;
   }
 
-  if (!http.connected()) {
-    log_e("HTTP client disconnected, reconnecting...");
+
+  if (!checkServerConnection()) {
+    log_w("HTTP client disconnected.");
     return 2;
   }
+
   return 0;
 }
 
+void setupServerHTTP(const String server) {
+  log_i("Connecting to server...");
+  bool connected = false;
+  while (!connected) {
+    log_v("Waiting for server connection...");
+
+    http.begin(server);
+    http.addHeader("Content-Type", "text/plain");
+
+    uint8_t error = checkConnection();
+
+    if (error == 0) {
+      connected = true;
+    }
+    delay(1000);
+  }
+  log_v("Connected to server!");
+}
+
 bool sendCardID(const char* cardID) {
-  if (checkServerConnection() > 0) {
-    log_e("Error: Unable to connect to server or WiFi.");
+  if (checkConnection() > 0) {
+    log_e("Unable to connect to server or WiFi.");
     return false;
   }
 
   log_v("Sending card ID to server...");
-  String payload = "001";
+  String payload = "101";
   for (int i = 0; i < MAX_BYTES_MESSAGE; i++) {
     payload += String(cardID[i]);
   }
@@ -118,6 +139,23 @@ bool sendCardID(const char* cardID) {
   if (httpResponseCode > 0) {
     String response = http.getString();
     log_d("Response: %s", response.c_str());
+    String request = "";
+    for (int i = 0; i < 3; i++) {
+      request += response[i];
+    }
+    if (strcmp(request.c_str(), "001") == 0) {
+      log_v("Valid ID");
+      String newID = "";
+      for (int i = 0; i < MAX_BYTES_MESSAGE; i++) {
+        newID += String(response[i+3]);
+      }
+      nfcAntenna.writeNfcTag((byte*)newID.c_str());
+    } else if (strcmp(request.c_str(), "002") == 0) {
+      log_v("Invalid ID");
+    } else {
+      log_v("Invalid response format, got %s", request.c_str());
+    }
+    
   } else {
     log_e("Error on sending POST: %s", http.errorToString(httpResponseCode).c_str());
     return false;
@@ -194,7 +232,7 @@ void setup() {
 }
 
 void loop() {
-  nfcAntenna.writeNfcTag((byte*)"");
+  // nfcAntenna.writeNfcTag((byte*)"1234567891");
   checkNfcTag();
   
   delay(1000);

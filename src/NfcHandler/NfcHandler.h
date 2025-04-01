@@ -8,7 +8,7 @@
 #include <NfcAdapter.h>
 #include <esp32-hal-log.h>
 
-#define MAX_BYTES_MESSAGE 16
+#define MAX_BYTES_MESSAGE 10
 
 // Define the expected TNF (Type Name Format) value for validation
 constexpr uint8_t EXPECTED_TNF_VALUE = 0x01; // Example: 0x00 for NFC Well Known Type
