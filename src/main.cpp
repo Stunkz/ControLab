@@ -96,7 +96,7 @@ void setupServerConnection() {
   } while (errorCode != CODE_SUCCESS);
 }
 
-/*
+
 bool sendCardID(const char* cardID) {
   if (checkConnection() > 0) {
     log_e("Unable to connect to server or WiFi.");
@@ -137,7 +137,6 @@ bool sendCardID(const char* cardID) {
   }
   return true;
 }
-*/
 
 /*
 ==========================================================================
@@ -247,7 +246,7 @@ void setup() {
 
   } while(errorCode != CODE_SUCCESS);
 }
-
+ 
 void loop() {
   // nfcAntenna.writeNfcTag((byte*)"1234567891");
   checkNfcTag();
