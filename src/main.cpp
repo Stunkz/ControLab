@@ -219,11 +219,12 @@ void setup() {
   display.drawCampusFab(0, 0, 2000);
   display.clear();
 
-  
+
   display.text("Waiting for", "Connection...", "", 0);
   setupWifiConnection();
 
   setupServerHTTP(host);
+
   
   display.text("Waiting for", "NFC Antenna...", "", 0);
   while (!nfcAntenna.begin()) {

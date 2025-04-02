@@ -1,6 +1,8 @@
 #ifndef ERROR_CODE_H
 #define ERROR_CODE_H
 
+#include <Arduino.h>
+
 #define CODE_SUCCESS (0)
 
 // NFC error codes
