@@ -19,6 +19,14 @@
 // Display error codes
 #define ERROR_DISPLAY_INIT_FAILED       (200) // Initialization of the display failed
 
+// Server error codes
+#define ERROR_SERVER_CONNECTION_FAILED  (300) // Connection to the server failed
+#define ERROR_INVALID_REQUEST           (301) // The request is invalid
+#define ERROR_INVALID_SERVER_PAYLOAD    (302) // The server payload is invalid
+#define ERROR_WIFI_DISCONNECTED         (303) // The wifi is disconnected
+#define ERROR_SERVER_DISCONNECTED       (304) // The server is disconnected
+
+
 extern uint8_t errorCode; // Global variable to store the error code
 
 #endif // ERROR_CODE_H

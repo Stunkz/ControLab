@@ -10,12 +10,12 @@ Il faut aussi un mode pour écrire simplement sur le tag avec soit un boutton so
 
 #include <DisplayHandler.h>
 #include <NfcHandler.h>
+#include <ServerConnection.h>
 
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <WiFi.h>
 #include <Wire.h>
-#include <HTTPClient.h>
 
 #include <esp32-hal-log.h>
 
@@ -36,7 +36,7 @@ extern "C" int lwip_hook_ip6_input(void *p) {
   return 1; // Retourne 1 pour indiquer que le paquet IPv6 est accepté
 }
 
-HTTPClient http;
+ServerConnection server = ServerConnection();
 
 /*
 ==========================================================================
@@ -76,56 +76,27 @@ void setupWifiConnection() {
   log_i("IP address: %s", WiFi.localIP().toString().c_str());
 }
 
-bool checkWifiConnection() {
-  if (WiFi.status() != WL_CONNECTED) {
-    return false;
-  }
-  return true;
-}
-
-bool checkServerConnection() {
-  int httpResponseCode = http.GET();
-  if (httpResponseCode == 200) {
-    return true;
-  } else {
-    return false;
-  }
-}
-
-uint8_t checkConnection() {
-  if (!checkWifiConnection) {
-    log_w("Wifi disconnected.");
-    return 1;
-  }
-
-
-  if (!checkServerConnection()) {
-    log_w("HTTP client disconnected.");
-    return 2;
-  }
-
-  return 0;
-}
-
-void setupServerHTTP(const String server) {
+void setupServerConnection() {
   log_i("Connecting to server...");
-  bool connected = false;
-  while (!connected) {
-    log_v("Waiting for server connection...");
+  do {
+    errorCode = server.connect(host);
 
-    http.begin(server);
-    http.addHeader("Content-Type", "text/plain");
+    if (errorCode != CODE_SUCCESS) {
 
-    uint8_t error = checkConnection();
+      display.text("Server", "Error", "", 0);
+      log_e("Error connecting to server: %d", errorCode);
 
-    if (error == 0) {
-      connected = true;
+      delay(1000);
+    } else {
+
+      display.text("Server", "Ready", "", 0);
+      log_v("Server connected successfully.");
+
     }
-    delay(1000);
-  }
-  log_v("Connected to server!");
+  } while (errorCode != CODE_SUCCESS);
 }
 
+/*
 bool sendCardID(const char* cardID) {
   if (checkConnection() > 0) {
     log_e("Unable to connect to server or WiFi.");
@@ -166,6 +137,7 @@ bool sendCardID(const char* cardID) {
   }
   return true;
 }
+*/
 
 /*
 ==========================================================================
@@ -222,7 +194,7 @@ void checkNfcTag() {
   
   // Sending card to the server to verify its validity
   // and get a new ID if it's valid
-  sendCardID(cardID);
+  // sendCardID(cardID);
 }
 
 void setup() {
@@ -239,7 +211,7 @@ void setup() {
   // Config display
   errorCode = display.begin();
   if (errorCode != CODE_SUCCESS) {
-    
+
     log_e("Error initializing display: %d", errorCode);
     return;
   }
@@ -247,12 +219,11 @@ void setup() {
   display.drawCampusFab(0, 0, 2000);
   display.clear();
 
-  /*
+  
   display.text("Waiting for", "Connection...", "", 0);
   setupWifiConnection();
 
-  setupServerHTTP(host);
-  */
+  setupServerConnection();
   
   display.text("Waiting for", "NFC Antenna...", "", 0);
 
