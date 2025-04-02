@@ -242,6 +242,8 @@ uint8_t NfcHandler::getLastPayload(byte* payload) {
     }
 
     memcpy(payload, lastPayload, PAYLOAD_SIZE);
+    
+    return CODE_SUCCESS;
 }
 
 /**
