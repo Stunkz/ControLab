@@ -19,6 +19,8 @@ Il faut aussi un mode pour écrire simplement sur le tag avec soit un boutton so
 
 #include <esp32-hal-log.h>
 
+#include <ErrorCode.h>
+
 /*
 ==========================================================================
               Config wifi
@@ -44,6 +46,8 @@ HTTPClient http;
 // Définir les nouvelles broches pour I2C
 #define SDA_PIN 6
 #define SCL_PIN 7
+
+#define I2C_CLOCK 100000 // 100kHz
 
 /*
 ==========================================================================
@@ -171,65 +175,106 @@ bool sendCardID(const char* cardID) {
 
 //TODO Make a real function
 void wrongTag() {
-  display.text("Wrong Tag", "", "", 0);
-  log_w("Wrong Tag");
+
+  display.text("Wrong Tag", "", "", 1000);
+
 }
 
 void checkNfcTag() {
+  byte payload[PAYLOAD_SIZE] = {0};
+  char cardID[PAYLOAD_SIZE] = {0};
+
   log_v("Checking NfcTag...");
   display.text("Checking Tag...", "", "", 0);
-  
-  if (!nfcAntenna.readNfcTag()) {
+
+  // Reading the NFC tag
+  // If no tag is present, the function will return an error code
+  // If a tag is present, it will read the tag and return the code success
+  // If the tag is not valid, it will return an error code
+  errorCode = nfcAntenna.readNfcTag();
+
+  if (errorCode == ERROR_NFC_TAG_NOT_PRESENT) {
+
+    log_v("No NFC tag present.");
+    return;
+  } else if (errorCode != CODE_SUCCESS) {
+
+    log_e("Error reading NFC tag: %d", errorCode);
     wrongTag();
+
+    return;
+  }
+  log_v("Tag found!");
+
+  // Getting the last payload that has been read
+  errorCode = nfcAntenna.getLastPayload(payload);
+
+  if (errorCode != CODE_SUCCESS) {
+
+    log_e("Error getting last payload: %d", errorCode);
+    wrongTag();
+
     return;
   }
 
-  log_v("Tag found!");
-  display.text("Tag found!", "", "", 0);
-  byte payload[PAYLOAD_SIZE];
-
-  nfcAntenna.getLastPayload(payload);
-  char cardID[PAYLOAD_SIZE] = {0};
-
-  for (int i = 0; i < PAYLOAD_SIZE; i++) {
-    cardID[i] = payload[i];
-  }
-
+  memcpy(cardID, payload, PAYLOAD_SIZE);
   log_d("Card ID: %s", nfcAntenna.getLastPayloadString().c_str());
   
+  // Sending card to the server to verify its validity
+  // and get a new ID if it's valid
   sendCardID(cardID);
 }
-
-/*
-==========================================================================
-        Script principal
-==========================================================================
-*/
 
 void setup() {
   Serial.begin(115200);
 
   log_i("CONTROL LAB :((");
 
-  // Configurer les broches I2C
+  // Config I2C
+  // Set the I2C pins to the new ones
   Wire.begin(SDA_PIN, SCL_PIN);
-  Wire.setClock(100000);
+  // Set the I2C frequency to 100kHz
+  Wire.setClock(I2C_CLOCK);
 
-  display.begin();
+  // Config display
+  errorCode = display.begin();
+  if (errorCode != CODE_SUCCESS) {
+    
+    log_e("Error initializing display: %d", errorCode);
+    return;
+  }
+
   display.drawCampusFab(0, 0, 2000);
   display.clear();
 
-
+  /*
   display.text("Waiting for", "Connection...", "", 0);
   setupWifiConnection();
 
   setupServerHTTP(host);
-
+  */
   
   display.text("Waiting for", "NFC Antenna...", "", 0);
-  while (!nfcAntenna.begin()) {
-    delay(1000);
-  }
+
+  // Start the NFC antenna
+  do {
+
+    errorCode = nfcAntenna.begin();
+
+    if (errorCode != CODE_SUCCESS) {
+
+      display.text("NFC Antenna", "Error", "", 0);
+      log_e("Error initializing NFC antenna: %d", errorCode);
+
+      delay(1000);
+    } else {
+
+      display.text("NFC Antenna", "Ready", "", 0);
+      log_v("NFC antenna initialized successfully.");
+
+    }
+
+  } while(errorCode != CODE_SUCCESS);
 }
 
 void loop() {

@@ -7,6 +7,7 @@
 #include <Wire.h>
 #include <esp32-hal-log.h>
 #include "Logo.h"
+#include <ErrorCode.h>
 
 #define SCREEN_WIDTH 128
 #define SCREEN_HEIGHT 32
@@ -23,7 +24,7 @@ class Display {
     public:
         Display(int width, int height, TwoWire* wire, uint8_t address);
     
-        bool begin();
+        uint8_t begin(void);
         void clear(int delayMs = 0);
         void drawCampusFab(int x, int y, int delayMs = 0);
         void text(const char* line1, const char* line2 = nullptr, const char* line3 = nullptr, int delayMs = 0);
