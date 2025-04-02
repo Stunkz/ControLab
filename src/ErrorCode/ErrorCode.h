@@ -17,14 +17,14 @@
 #define ERROR_COULD_NOT_WRITE_TAG       (108)
 
 // Display error codes
-#define ERROR_DISPLAY_INIT_FAILED       (200) // Initialization of the display failed
+#define ERROR_DISPLAY_INIT_FAILED       (150) // Initialization of the display failed
 
 // Server error codes
-#define ERROR_SERVER_CONNECTION_FAILED  (300) // Connection to the server failed
-#define ERROR_INVALID_REQUEST           (301) // The request is invalid
-#define ERROR_INVALID_SERVER_PAYLOAD    (302) // The server payload is invalid
-#define ERROR_WIFI_DISCONNECTED         (303) // The wifi is disconnected
-#define ERROR_SERVER_DISCONNECTED       (304) // The server is disconnected
+#define ERROR_SERVER_CONNECTION_FAILED  (200) // Connection to the server failed
+#define ERROR_INVALID_REQUEST           (201) // The request is invalid
+#define ERROR_INVALID_SERVER_PAYLOAD    (202) // The server payload is invalid
+#define ERROR_WIFI_DISCONNECTED         (203) // The wifi is disconnected
+#define ERROR_SERVER_DISCONNECTED       (204) // The server is disconnected
 
 
 extern uint8_t errorCode; // Global variable to store the error code

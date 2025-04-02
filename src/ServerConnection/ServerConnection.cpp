@@ -67,5 +67,5 @@ uint8_t ServerConnection::sendRequest(const char* request, const char* payload) 
     log_d("Full request: %s", fullRequest.c_str());
 
     int httpResponseCode = http.POST(fullRequest);
-
+    return CODE_SUCCESS;
 }
