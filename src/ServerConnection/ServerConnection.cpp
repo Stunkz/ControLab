@@ -42,30 +42,42 @@ uint8_t ServerConnection::checkConnection() {
     return CODE_SUCCESS;
 }
 
-uint8_t ServerConnection::sendRequest(const char* request, const char* payload) {
-    String requestString, payloadString;
+uint8_t ServerConnection::sendRequest(const char* request, int requestLen, const char* payload, int payloadLen, int* responseCode) {
+    String requestString, payloadString, fullRequest;
 
     if (request == nullptr) {
         return ERROR_INVALID_REQUEST;
     }
 
-    requestString = String(request);
-    if (requestString.length() != REQUEST_SIZE) {
+    if (requestLen != REQUEST_SIZE) {
         return ERROR_INVALID_REQUEST;
     }
+
+    requestString = charToString(request, requestLen);
+    
 
     if (payload == nullptr) {
         return ERROR_INVALID_SERVER_PAYLOAD;
     }
 
-    payloadString = String(payload);
-    if (payloadString.length() != PAYLOAD_SIZE) {
+    if (payloadLen != PAYLOAD_SIZE) {
         return ERROR_INVALID_SERVER_PAYLOAD;
     }
 
-    String fullRequest = requestString + payloadString;
+    payloadString = charToString(payload, payloadLen);
+    
+
+    fullRequest = requestString + payloadString;
     log_d("Full request: %s", fullRequest.c_str());
 
-    int httpResponseCode = http.POST(fullRequest);
+    *responseCode = http.POST(fullRequest);
     return CODE_SUCCESS;
+}
+
+String ServerConnection::getResponse() {
+    return http.getString();
+}
+
+String ServerConnection::getErrorToString(int httpResponseCode) {
+    return http.errorToString(httpResponseCode).c_str();
 }

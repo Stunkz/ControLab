@@ -97,45 +97,56 @@ void setupServerConnection() {
 }
 
 
-bool sendCardID(const char* cardID) {
-  if (checkConnection() > 0) {
-    log_e("Unable to connect to server or WiFi.");
-    return false;
+uint8_t sendCardID(const char* cardID, String& newID) {
+  int httpResponseCode = 0;
+  String response, request = "";
+  
+  errorCode = server.checkConnection();
+  if (errorCode != CODE_SUCCESS) {
+
+    log_e("Error checking server connection: %d", errorCode);
+
+    return errorCode;
   }
 
   log_v("Sending card ID to server...");
-  String payload = "101";
-  for (int i = 0; i < PAYLOAD_SIZE; i++) {
-    payload += String(cardID[i]);
-  }
-  log_d("Payload: %s", payload.c_str());
+  
+  server.sendRequest(CARD_ID_VERIFICATION, 3, cardID, PAYLOAD_SIZE, &httpResponseCode);
 
-  int httpResponseCode = http.POST(payload);
   if (httpResponseCode > 0) {
-    String response = http.getString();
+
+    response = server.getResponse();
     log_d("Response: %s", response.c_str());
-    String request = "";
+
     for (int i = 0; i < 3; i++) {
       request += response[i];
     }
+
     if (strcmp(request.c_str(), "001") == 0) {
+
       log_v("Valid ID");
-      String newID = "";
+
       for (int i = 0; i < PAYLOAD_SIZE; i++) {
         newID += String(response[i+3]);
       }
-      nfcAntenna.writeNfcTag((byte*)newID.c_str());
+
     } else if (strcmp(request.c_str(), "002") == 0) {
+
       log_v("Invalid ID");
+
+      return ERROR_INVALID_CARD_ID;
     } else {
+
       log_v("Invalid response format, got %s", request.c_str());
+
+      return ERROR_INVALID_SERVER_RESPONSE;
     }
     
   } else {
-    log_e("Error on sending POST: %s", http.errorToString(httpResponseCode).c_str());
-    return false;
+    log_e("Error on sending POST: %s", server.getErrorToString(httpResponseCode).c_str());
+    return ERROR_INVALID_REQUEST;
   }
-  return true;
+  return CODE_SUCCESS;
 }
 
 /*
@@ -151,9 +162,15 @@ void wrongTag() {
 
 }
 
+void goodTag() {
+
+  display.text("Valid", "", "", 1000);
+}
+
 void checkNfcTag() {
   byte payload[PAYLOAD_SIZE] = {0};
   char cardID[PAYLOAD_SIZE] = {0};
+  String newID = "";
 
   log_v("Checking NfcTag...");
   display.text("Checking Tag...", "", "", 0);
@@ -193,7 +210,15 @@ void checkNfcTag() {
   
   // Sending card to the server to verify its validity
   // and get a new ID if it's valid
-  // sendCardID(cardID);
+  errorCode = sendCardID(cardID, newID);
+  if (errorCode != CODE_SUCCESS) {
+    log_e("Error sending card ID: %d", errorCode);
+    wrongTag();
+
+    return;
+  }
+
+  nfcAntenna.writeNfcTag((byte*)newID.c_str());
 }
 
 void setup() {

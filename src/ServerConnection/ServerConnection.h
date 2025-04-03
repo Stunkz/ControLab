@@ -13,12 +13,22 @@ class ServerConnection {
     private:
         HTTPClient http;
 
+        String charToString(const char* str, int len) {
+            String result = "";
+            for (int i = 0; i < len; i++) {
+                result += str[i];
+            }
+            return result;
+        }
+
     public:
         ServerConnection(void);
 
         uint8_t connect(String url);
         uint8_t checkConnection(void);
-        uint8_t sendRequest(const char* request, const char* payload);
+        uint8_t sendRequest(const char* request, int requestLen, const char* payload, int payloadLen, int* responseCode);
+        String getResponse(void);
+        String getErrorToString(int httpResponseCode);
 
 };
 
