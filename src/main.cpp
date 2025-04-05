@@ -11,12 +11,12 @@ Il faut aussi un mode pour écrire simplement sur le tag avec soit un boutton so
 #include <DisplayHandler.h>
 #include <NfcHandler.h>
 #include <ServerConnection.h>
-#include <Audio.h>
 
 #include <Adafruit_GFX.h>
 #include <Adafruit_SSD1306.h>
 #include <WiFi.h>
 #include <Wire.h>
+#include <SPIFFS.h>
 
 #include <esp32-hal-log.h>
 
@@ -223,12 +223,6 @@ void checkNfcTag() {
   nfcAntenna.writeNfcTag((byte*)newID.c_str());
 }
 
-#define I2S_DOUT      18
-#define I2S_BCLK      8
-#define I2S_LRC       9
-
-Audio audio;
-
 void setup() {
   Serial.begin(115200);
 
@@ -254,9 +248,6 @@ void setup() {
   
   display.text("Waiting for", "Connection...", "", 0);
   setupWifiConnection();
-
-  audio.setPinout(I2S_BCLK, I2S_LRC, I2S_DOUT);
-  audio.setVolume(21);
 //  setupServerConnection();
   
   display.text("Waiting for", "NFC Antenna...", "", 0);
@@ -285,5 +276,4 @@ void setup() {
 void loop() {
   // nfcAntenna.writeNfcTag((byte*)"1234567891");
   //checkNfcTag();
-  audio.loop();
 }
