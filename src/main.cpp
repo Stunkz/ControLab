@@ -57,14 +57,6 @@ ServerConnection server = ServerConnection();
 ==========================================================================
 */
 
-/**
- * @brief Establishes a connection to a Wi-Fi network using the provided SSID and password.
- * 
- * This function attempts to connect to a Wi-Fi network and waits until the connection
- * is successfully established.
- * 
- * @warning This function blocks execution until the Wi-Fi connection is established.
- */
 void setupWifiConnection() {
   log_i("Connecting to network...");
   WiFi.begin(ssid, password);
